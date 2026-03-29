@@ -1,0 +1,10 @@
+linter:
+  rules:
+    - camel_case_types
+    - camel_case_extensions
+    - file_names
+    - implementation_imports
+    - leading_newlines_in_multiline_strings
+    - prefer_relative_imports
+    - prefer_single_quotes
+    - unnecessary_getters_setters
