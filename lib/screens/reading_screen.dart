@@ -180,8 +180,10 @@ class _ReadingScreenState extends State<ReadingScreen> {
                                 decoration: InputDecoration(
                                   filled: true,
                                   fillColor: Colors.white12,
-                                  hintText: 'Kartları çekerken odaklanmak istediğiniz niyetinizi yazın...',
-                                  hintStyle: const TextStyle(color: Colors.white54),
+                                  hintText:
+                                      'Kartları çekerken odaklanmak istediğiniz niyetinizi yazın...',
+                                  hintStyle:
+                                      const TextStyle(color: Colors.white54),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
                                     borderSide: BorderSide.none,
@@ -199,7 +201,8 @@ class _ReadingScreenState extends State<ReadingScreen> {
                                       },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.deepOrange,
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 12),
                                 ),
                                 child: const Text('Niyeti Onayla'),
                               ),
@@ -223,7 +226,8 @@ class _ReadingScreenState extends State<ReadingScreen> {
                                     _intentConfirmed = false;
                                   });
                                 },
-                                child: const Text('Niyeti Değiştir', style: TextStyle(color: Colors.amber)),
+                                child: const Text('Niyeti Değiştir',
+                                    style: TextStyle(color: Colors.amber)),
                               ),
                             ],
                           ],
