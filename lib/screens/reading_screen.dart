@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import '../models/tarot_card.dart';
 import 'card_detail_screen.dart';
@@ -18,6 +20,9 @@ class _ReadingScreenState extends State<ReadingScreen> {
   late List<bool> isReversed;
   int _sessionToken = 0;
 
+  final TextEditingController _intentController = TextEditingController();
+  bool _intentConfirmed = false;
+
   @override
   void initState() {
     super.initState();
@@ -25,6 +30,12 @@ class _ReadingScreenState extends State<ReadingScreen> {
     selectedCards = [];
     isRevealed = [];
     isReversed = [];
+  }
+
+  @override
+  void dispose() {
+    _intentController.dispose();
+    super.dispose();
   }
 
   void _selectCard(int index) {
@@ -81,261 +92,445 @@ class _ReadingScreenState extends State<ReadingScreen> {
       selectedCards = [];
       isRevealed = [];
       isReversed = [];
+      _intentController.clear();
+      _intentConfirmed = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool compact = MediaQuery.of(context).size.height < 700;
+    final double topPadding = compact ? 20 : 50;
+    final double sectionGap = compact ? 20 : 40;
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.deepPurple.shade900,
-              Colors.purple.shade700,
-              Colors.indigo.shade900,
-            ],
-          ),
-        ),
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.only(top: 50, left: 20, right: 20),
-              child: Column(
-                children: [
-                  Text(
-                    '${widget.cardCount}-Kart Çekiş',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '${selectedCards.length}/${widget.cardCount} Kart Seçildi',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.amber,
-                    ),
-                  ),
-                ],
-              ),
+      extendBody: true,
+      backgroundColor: Colors.transparent,
+      body: SizedBox.expand(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.deepPurple.shade900,
+                Colors.purple.shade700,
+                Colors.indigo.shade900,
+              ],
             ),
-            const SizedBox(height: 40),
-
-            // Selected Cards Display
-            if (selectedCards.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Seçilen Kartlar',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: List.generate(
-                          selectedCards.length,
-                          (index) => Padding(
-                            padding: const EdgeInsets.only(right: 10),
-                            child: _buildSelectedCard(index),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            const SizedBox(height: 40),
-
-            // Card Selection Grid
-            if (selectedCards.length < widget.cardCount)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final double gridHeight =
+                    constraints.maxHeight * (compact ? 0.48 : 0.54);
+                return SingleChildScrollView(
+                    child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Kart Seçiniz',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white70,
+                      // Header
+                      Padding(
+                        padding: EdgeInsets.only(
+                            top: topPadding, left: 20, right: 20),
+                        child: Column(
+                          children: [
+                            Text(
+                              '${widget.cardCount}-Kart Çekiş',
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              '${selectedCards.length}/${widget.cardCount} Kart Seçildi',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.amber,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 15),
-                      Expanded(
-                        child: GridView.builder(
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            mainAxisSpacing: 15,
-                            crossAxisSpacing: 10,
+                      SizedBox(height: sectionGap),
+
+                      // Intent / Question Entry
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Soru / Niyet',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white70,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            if (!_intentConfirmed) ...[
+                              TextField(
+                                controller: _intentController,
+                                maxLines: 3,
+                                onChanged: (_) => setState(() {}),
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.white12,
+                                  hintText: 'Kartları çekerken odaklanmak istediğiniz niyetinizi yazın...',
+                                  hintStyle: const TextStyle(color: Colors.white54),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              ElevatedButton(
+                                onPressed: _intentController.text.trim().isEmpty
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _intentConfirmed = true;
+                                        });
+                                      },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepOrange,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                ),
+                                child: const Text('Niyeti Onayla'),
+                              ),
+                            ] else ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white10,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  'Seçilen niyet: ${_intentController.text}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _intentConfirmed = false;
+                                  });
+                                },
+                                child: const Text('Niyeti Değiştir', style: TextStyle(color: Colors.amber)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: sectionGap),
+
+                      // Selected Cards Display
+                      if (selectedCards.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Seçilen Kartlar',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: List.generate(
+                                    selectedCards.length,
+                                    (index) => Padding(
+                                      padding: const EdgeInsets.only(right: 10),
+                                      child: _buildSelectedCard(index),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          itemCount: deck.length,
-                          itemBuilder: (context, index) {
-                            return _buildCardButton(index);
-                          },
                         ),
-                      ),
+
+                      SizedBox(height: sectionGap),
+
+                      // Card Selection Grid
+                      if (!_intentConfirmed)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white10,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text(
+                              'Kart çekmek için önce niyetinizi onaylayın.',
+                              style: TextStyle(color: Colors.white70),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        )
+                      else if (selectedCards.length < widget.cardCount)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Kart Seçiniz',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              SizedBox(
+                                height: gridHeight,
+                                child: _buildCardGrid(),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      // Action Buttons
+                      if (selectedCards.length == widget.cardCount)
+                        Padding(
+                          padding: EdgeInsets.all(compact ? 16 : 30),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Kartlara Tıklayarak Açınız',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.amber,
+                                ),
+                              ),
+                              SizedBox(height: compact ? 12 : 20),
+                              ElevatedButton(
+                                onPressed: _resetReading,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepOrange,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: compact ? 28 : 40,
+                                    vertical: compact ? 12 : 15,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Yeni Çekiş',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
-                ),
-              ),
-
-            // Action Buttons
-            if (selectedCards.length == widget.cardCount)
-              Padding(
-                padding: const EdgeInsets.all(30),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Kartlara Tıklayarak Açınız',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.amber,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _resetReading,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepOrange,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 40,
-                          vertical: 15,
-                        ),
-                      ),
-                      child: const Text(
-                        'Yeni Çekiş',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
+                ));
+              },
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCardButton(int index) {
+  Widget _buildCardGrid() {
+    const double spacing = 2;
+    const double targetSize = 28;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxW = constraints.maxWidth;
+        final double maxH = constraints.maxHeight;
+
+        int columns = ((maxW + spacing) / (targetSize + spacing)).floor();
+        columns = max(1, columns);
+        final int rows = (deck.length / columns).ceil();
+
+        final double sizeByWidth = (maxW - spacing * (columns - 1)) / columns;
+        final double sizeByHeight = (maxH - spacing * (rows - 1)) / rows;
+        final double cardSize = max(16, min(sizeByWidth, sizeByHeight));
+        final double iconSize = max(8, cardSize * 0.5);
+        final double numberSize = max(7, cardSize * 0.22);
+
+        return GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: spacing,
+            crossAxisSpacing: spacing,
+            childAspectRatio: 1,
+          ),
+          itemCount: deck.length,
+          itemBuilder: (context, index) {
+            return _buildCardButton(
+              index,
+              width: cardSize,
+              height: cardSize,
+              iconSize: iconSize,
+              numberSize: numberSize,
+              borderWidth: 0.8,
+              showIndex: false,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCardButton(
+    int index, {
+    double? width,
+    double? height,
+    double iconSize = 32,
+    double numberSize = 12,
+    double borderWidth = 2,
+    bool showIndex = true,
+  }) {
     return GestureDetector(
       onTap: () => _selectCard(index),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.deepPurple.shade700,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: Colors.amber,
-            width: 2,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.deepPurple.shade700,
+            borderRadius: BorderRadius.zero,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.18),
+              width: borderWidth,
+            ),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.amber.withValues(alpha: 0.3),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              '🂠',
-              style: TextStyle(fontSize: 32),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              '${index + 1}',
-              style: const TextStyle(
-                color: Colors.amber,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final double maxH = constraints.maxHeight;
+              final double icon = min(iconSize, maxH * (showIndex ? 0.5 : 0.7));
+              final double number = min(numberSize, maxH * 0.18);
+              final double gap = max(1, maxH * 0.04);
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '🂠',
+                    style: TextStyle(fontSize: icon),
+                  ),
+                  if (showIndex) ...[
+                    SizedBox(height: gap),
+                    Text(
+                      '${index + 1}',
+                      style: TextStyle(
+                        color: Colors.amber,
+                        fontWeight: FontWeight.bold,
+                        fontSize: number,
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
   }
 
   Widget _buildSelectedCard(int index) {
+    final TarotCard card = selectedCards[index];
+    final bool revealed = isRevealed[index];
     return GestureDetector(
       onTap: () => _revealCard(index),
-      child: Container(
-        width: 120,
-        height: 160,
-        decoration: BoxDecoration(
-          color: isRevealed[index]
-              ? Colors.amber.shade700
-              : Colors.deepPurple.shade800,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: Colors.amber,
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.amber.withValues(alpha: 0.4),
-              blurRadius: 12,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 105,
+            height: 140,
+            decoration: BoxDecoration(
+              color: revealed ? null : Colors.deepPurple.shade800,
+              borderRadius: BorderRadius.circular(10),
+              // border: Border.all(
+              //   color: Colors.amber,
+              //   width: 2,
+              // ),
+              // boxShadow: [
+              //   BoxShadow(
+              //     color: Colors.amber.withValues(alpha: 0.4),
+              //     blurRadius: 12,
+              //   ),
+              // ],
             ),
-          ],
-        ),
-        child: isRevealed[index]
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    selectedCards[index].name,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+            child: revealed
+                ? Column(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: _buildCardImage(card, isReversed[index]),
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Transform.rotate(
+                        angle: isReversed[index] ? 3.14159 : 0,
+                        child: const Text(
+                          '🂠',
+                          style: TextStyle(fontSize: 48),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Colors.amber,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Icon(
-                    isReversed[index]
-                        ? Icons.rotate_90_degrees_ccw
-                        : Icons.check_circle,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ],
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Transform.rotate(
-                    angle: isReversed[index] ? 3.14159 : 0,
-                    child: const Text(
-                      '🂠',
-                      style: TextStyle(fontSize: 48),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${index + 1}',
-                    style: const TextStyle(
-                      color: Colors.amber,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: 105,
+            child: Text(
+              revealed ? card.name : '',
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardImage(TarotCard card, bool reversed) {
+    return Transform.rotate(
+      angle: reversed ? 3.14159 : 0,
+      child: Image.asset(
+        card.imagePath,
+        fit: BoxFit.cover,
       ),
     );
   }
