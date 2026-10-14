@@ -1,3 +1,5 @@
+import 'tarot_interpretations.dart';
+
 class TarotCard {
   final int id;
   final String name;
@@ -14,6 +16,12 @@ class TarotCard {
     required this.reversed,
     required this.imagePath,
   });
+
+  String interpretation(bool isReversed) {
+    final keywords = isReversed ? reversed : upright;
+    final detail = tarotInterpretations[id][isReversed ? 1 : 0];
+    return '$keywords.\n\n$detail';
+  }
 }
 
 class TarotDeck {
@@ -443,7 +451,7 @@ class TarotDeck {
     ),
     TarotCard(
       id: 52,
-      name: 'Kılıç  Üçlüsü',
+      name: 'Kılıç Üçlüsü',
       suit: 'Kılıçlar',
       upright: 'Kırık kalp, üzüntü, acı, yas, zor zamanlar',
       reversed: 'İyileşme, bağışlama, ilerleme',

@@ -2,6 +2,11 @@
 
 A beautiful Flutter application for tarot card readings with support for single card, 3-card, and 7-card spreads.
 
+Readings work entirely offline: select cards directly, then read their bundled
+Turkish interpretations below the revealed cards. No question entry, AI API,
+backend, API key, or paid server is required. All 78 cards include expanded
+upright and reversed interpretations in `lib/models/tarot_interpretations.dart`.
+
 ## Features
 
 ✨ **Multiple Reading Types**
@@ -16,7 +21,7 @@ A beautiful Flutter application for tarot card readings with support for single 
 - Detailed card information dialogs
 
 🔮 **Complete Tarot Deck**
-- 22 Major Arcana cards
+- 78 cards: 22 Major Arcana and 56 Minor Arcana
 - Each card has upright and reversed meanings
 - Descriptions and interpretations
 - Random card orientation (upright/reversed)
@@ -66,8 +71,8 @@ FortuneTeller/
 1. **Launch the app** - You'll see the home screen with three reading options
 2. **Select a reading type** - Choose between 1, 3, or 7 cards
 3. **Select cards** - Click on the face-down cards to select them for your reading
-4. **Reveal cards** - Click on selected cards to reveal their meanings
-5. **View details** - A detailed dialog appears showing the card's interpretation
+4. **Read interpretations** - Cards reveal automatically when selection is complete; their meanings appear below
+5. **View details** - Tap a selected card to open its scrollable details
 6. **Start new reading** - Tap "Yeni Çekiş" (New Reading) to start over
 
 ## Card Information

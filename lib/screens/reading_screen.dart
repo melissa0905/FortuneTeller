@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/tarot_card.dart';
 import 'card_detail_screen.dart';
+import '../widgets/tarot_card_back.dart';
 
 class ReadingScreen extends StatefulWidget {
   final int cardCount;
@@ -20,8 +21,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
   late List<bool> isReversed;
   int _sessionToken = 0;
 
-  final TextEditingController _intentController = TextEditingController();
-  bool _intentConfirmed = false;
+  final Random _random = Random();
 
   @override
   void initState() {
@@ -32,18 +32,12 @@ class _ReadingScreenState extends State<ReadingScreen> {
     isReversed = [];
   }
 
-  @override
-  void dispose() {
-    _intentController.dispose();
-    super.dispose();
-  }
-
   void _selectCard(int index) {
     if (selectedCards.length < widget.cardCount) {
       setState(() {
         selectedCards.add(deck[index]);
         isRevealed.add(false);
-        isReversed.add(DateTime.now().millisecondsSinceEpoch % 2 == 0);
+        isReversed.add(_random.nextBool());
       });
 
       // Remove the selected card from the deck
@@ -64,7 +58,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
       Future.delayed(Duration(milliseconds: 300 * i), () {
         if (!mounted || session != _sessionToken) return;
         if (i >= selectedCards.length) return;
-        _revealCard(i);
+        setState(() => isRevealed[i] = true);
       });
     }
   }
@@ -92,16 +86,14 @@ class _ReadingScreenState extends State<ReadingScreen> {
       selectedCards = [];
       isRevealed = [];
       isReversed = [];
-      _intentController.clear();
-      _intentConfirmed = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final bool compact = MediaQuery.of(context).size.height < 700;
-    final double topPadding = compact ? 20 : 50;
-    final double sectionGap = compact ? 20 : 40;
+    final double topPadding = compact ? 16 : 24;
+    const double sectionGap = 24;
     return Scaffold(
       extendBody: true,
       backgroundColor: Colors.transparent,
@@ -119,11 +111,8 @@ class _ReadingScreenState extends State<ReadingScreen> {
             ),
           ),
           child: SafeArea(
-            bottom: false,
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final double gridHeight =
-                    constraints.maxHeight * (compact ? 0.48 : 0.54);
                 return SingleChildScrollView(
                     child: Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -152,84 +141,6 @@ class _ReadingScreenState extends State<ReadingScreen> {
                                 color: Colors.amber,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: sectionGap),
-
-                      // Intent / Question Entry
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Soru / Niyet',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white70,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            if (!_intentConfirmed) ...[
-                              TextField(
-                                controller: _intentController,
-                                maxLines: 3,
-                                onChanged: (_) => setState(() {}),
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.white12,
-                                  hintText:
-                                      'Kartları çekerken odaklanmak istediğiniz niyetinizi yazın...',
-                                  hintStyle:
-                                      const TextStyle(color: Colors.white54),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: _intentController.text.trim().isEmpty
-                                    ? null
-                                    : () {
-                                        setState(() {
-                                          _intentConfirmed = true;
-                                        });
-                                      },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.deepOrange,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 12),
-                                ),
-                                child: const Text('Niyeti Onayla'),
-                              ),
-                            ] else ...[
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white10,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  'Seçilen niyet: ${_intentController.text}',
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _intentConfirmed = false;
-                                  });
-                                },
-                                child: const Text('Niyeti Değiştir',
-                                    style: TextStyle(color: Colors.amber)),
-                              ),
-                            ],
                           ],
                         ),
                       ),
@@ -266,27 +177,11 @@ class _ReadingScreenState extends State<ReadingScreen> {
                           ),
                         ),
 
-                      SizedBox(height: sectionGap),
+                      if (selectedCards.isNotEmpty)
+                        const SizedBox(height: sectionGap),
 
                       // Card Selection Grid
-                      if (!_intentConfirmed)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.white10,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Text(
-                              'Kart çekmek için önce niyetinizi onaylayın.',
-                              style: TextStyle(color: Colors.white70),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        )
-                      else if (selectedCards.length < widget.cardCount)
+                      if (selectedCards.length < widget.cardCount)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Column(
@@ -299,12 +194,64 @@ class _ReadingScreenState extends State<ReadingScreen> {
                                   color: Colors.white70,
                                 ),
                               ),
-                              const SizedBox(height: 15),
-                              SizedBox(
-                                height: gridHeight,
-                                child: _buildCardGrid(),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'İçinden gelen karta dokun. Diğer kartlar için aşağı kaydır.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white60,
+                                  height: 1.5,
+                                ),
                               ),
+                              const SizedBox(height: 15),
+                              _buildCardGrid(),
                             ],
+                          ),
+                        ),
+
+                      if (selectedCards.length == widget.cardCount)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            children:
+                                List.generate(selectedCards.length, (index) {
+                              if (!isRevealed[index]) {
+                                return const SizedBox.shrink();
+                              }
+                              final card = selectedCards[index];
+                              return Container(
+                                key: ValueKey('interpretation-$index'),
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white10,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${index + 1}. ${card.name} · ${isReversed[index] ? 'Ters' : 'Düz'}',
+                                      style: const TextStyle(
+                                        color: Colors.amber,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      card.interpretation(isReversed[index]),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        height: 1.7,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
                           ),
                         ),
 
@@ -315,7 +262,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
                           child: Column(
                             children: [
                               const Text(
-                                'Kartlara Tıklayarak Açınız',
+                                'Ayrıntılar için kartlara dokunabilirsiniz.',
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.amber,
@@ -351,104 +298,30 @@ class _ReadingScreenState extends State<ReadingScreen> {
   }
 
   Widget _buildCardGrid() {
-    const double spacing = 2;
-    const double targetSize = 28;
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double maxW = constraints.maxWidth;
-        final double maxH = constraints.maxHeight;
-
-        int columns = ((maxW + spacing) / (targetSize + spacing)).floor();
-        columns = max(1, columns);
-        final int rows = (deck.length / columns).ceil();
-
-        final double sizeByWidth = (maxW - spacing * (columns - 1)) / columns;
-        final double sizeByHeight = (maxH - spacing * (rows - 1)) / rows;
-        final double cardSize = max(16, min(sizeByWidth, sizeByHeight));
-        final double iconSize = max(8, cardSize * 0.5);
-        final double numberSize = max(7, cardSize * 0.22);
-
+        final columns = (constraints.maxWidth / 78).floor().clamp(2, 8);
         return GridView.builder(
+          shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 24),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            mainAxisSpacing: spacing,
-            crossAxisSpacing: spacing,
-            childAspectRatio: 1,
+            mainAxisSpacing: 14,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.6,
           ),
           itemCount: deck.length,
-          itemBuilder: (context, index) {
-            return _buildCardButton(
-              index,
-              width: cardSize,
-              height: cardSize,
-              iconSize: iconSize,
-              numberSize: numberSize,
-              borderWidth: 0.8,
-              showIndex: false,
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildCardButton(
-    int index, {
-    double? width,
-    double? height,
-    double iconSize = 32,
-    double numberSize = 12,
-    double borderWidth = 2,
-    bool showIndex = true,
-  }) {
-    return GestureDetector(
-      onTap: () => _selectCard(index),
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.deepPurple.shade700,
-            borderRadius: BorderRadius.zero,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.18),
-              width: borderWidth,
+          itemBuilder: (context, index) => Semantics(
+            label: 'Kart ${index + 1}',
+            button: true,
+            child: TarotCardBack(
+              key: ValueKey('deck-card-$index'),
+              onTap: () => _selectCard(index),
             ),
           ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final double maxH = constraints.maxHeight;
-              final double icon = min(iconSize, maxH * (showIndex ? 0.5 : 0.7));
-              final double number = min(numberSize, maxH * 0.18);
-              final double gap = max(1, maxH * 0.04);
-
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '🂠',
-                    style: TextStyle(fontSize: icon),
-                  ),
-                  if (showIndex) ...[
-                    SizedBox(height: gap),
-                    Text(
-                      '${index + 1}',
-                      style: TextStyle(
-                        color: Colors.amber,
-                        fontWeight: FontWeight.bold,
-                        fontSize: number,
-                      ),
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -460,60 +333,21 @@ class _ReadingScreenState extends State<ReadingScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
+          SizedBox(
             width: 105,
-            height: 140,
-            decoration: BoxDecoration(
-              color: revealed ? null : Colors.deepPurple.shade800,
-              borderRadius: BorderRadius.circular(10),
-              // border: Border.all(
-              //   color: Colors.amber,
-              //   width: 2,
-              // ),
-              // boxShadow: [
-              //   BoxShadow(
-              //     color: Colors.amber.withValues(alpha: 0.4),
-              //     blurRadius: 12,
-              //   ),
-              // ],
-            ),
+            height: 175,
             child: revealed
-                ? Column(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: _buildCardImage(card, isReversed[index]),
-                        ),
-                      ),
-                    ],
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: _buildCardImage(card, isReversed[index]),
                   )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Transform.rotate(
-                        angle: isReversed[index] ? 3.14159 : 0,
-                        child: const Text(
-                          '🂠',
-                          style: TextStyle(fontSize: 48),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${index + 1}',
-                        style: const TextStyle(
-                          color: Colors.amber,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+                : const TarotCardBack(),
           ),
           const SizedBox(height: 6),
           SizedBox(
             width: 105,
             child: Text(
-              revealed ? card.name : '',
+              revealed ? card.name : '${index + 1}. Kart',
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -534,7 +368,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
       angle: reversed ? 3.14159 : 0,
       child: Image.asset(
         card.imagePath,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
       ),
     );
   }
